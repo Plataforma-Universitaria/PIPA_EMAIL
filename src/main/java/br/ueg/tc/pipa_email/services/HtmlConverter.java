@@ -18,7 +18,30 @@ public class HtmlConverter {
 
     public static String generate(String htmlString, Path folderPath, String filePrefix) throws ErrorCouldNotCreateFile {
         String pdfPath = getFileName(folderPath, filePrefix);
-        try  {
+        try {
+            String css = """
+        <style>
+            body {
+                font-size: 10pt !important;
+                font-family: Arial, sans-serif;
+                line-height: 1.4;
+            }
+            table {
+                font-size: 9pt !important;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 4px;
+            }
+        </style>
+        """;
+
+            if (!htmlString.contains("<head>")) {
+                htmlString = "<html><head>" + css + "</head><body>" + htmlString + "</body></html>";
+            } else {
+                htmlString = htmlString.replace("</head>", css + "</head>");
+            }
+
             Tidy tidy = new Tidy();
             tidy.setXHTML(true);
             tidy.setShowWarnings(false);
@@ -26,21 +49,23 @@ public class HtmlConverter {
             tidy.setInputEncoding("UTF-8");
             tidy.setOutputEncoding("UTF-8");
 
-            InputStream htmlInputStream = new ByteArrayInputStream(
-                    htmlString.getBytes(StandardCharsets.UTF_8));
-            Document xhtmlDoc = tidy.parseDOM(htmlInputStream, null);
+            try (InputStream htmlInputStream = new ByteArrayInputStream(htmlString.getBytes(StandardCharsets.UTF_8));
+                 OutputStream pdfOutputStream = new FileOutputStream(pdfPath)) {
 
-            OutputStream pdfOutputStream = new FileOutputStream(pdfPath);
-            ITextRenderer renderer = new ITextRenderer();
-            renderer.setDocument(xhtmlDoc, null);
-            renderer.layout();
-            renderer.createPDF(pdfOutputStream);
-            pdfOutputStream.close();
+                Document xhtmlDoc = tidy.parseDOM(htmlInputStream, null);
+
+                ITextRenderer renderer = new ITextRenderer();
+                renderer.setDocument(xhtmlDoc, null);
+                renderer.layout();
+                renderer.createPDF(pdfOutputStream);
+            }
+
             return pdfPath;
         } catch (Exception e) {
             throw new ErrorCouldNotCreateFile(new Object[]{e.getMessage()});
         }
     }
+
 
     private static String getFileName(Path folderPath, String filePrefix) {
         try {
