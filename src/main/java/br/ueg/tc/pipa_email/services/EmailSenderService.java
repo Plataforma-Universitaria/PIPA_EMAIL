@@ -45,8 +45,6 @@ public class EmailSenderService {
             Email email = withAttachment ? buildEmailWithAttachment(emailDetails)
                     : buildEmailWithoutAttachment(emailDetails);
 
-            System.out.println(email.toString());
-
             Thread emailThread = new Thread(() -> {
                 try {
                     mailer.sendMail(email);
