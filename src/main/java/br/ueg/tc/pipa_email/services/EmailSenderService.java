@@ -22,20 +22,27 @@ import java.util.Objects;
 @Slf4j
 public class EmailSenderService {
 
-    private static final String SMTP_HOST = "smtp_host";
-    private static final String SMTP_PORT = "smtp_port";
-    private static final String EMAIL_USER = "email_user";
-    private static final String EMAIL_PASSWORD = "email_password";
+    @Value("${smtp.host}")
+    private String SMTP_HOST;
 
-    private static boolean sendEmail(EmailDetails emailDetails, Environment environment, boolean withAttachment)
+    @Value("${smtp.port}")
+    private String SMTP_PORT;
+
+    @Value("${smtp.user}")
+    private String EMAIL_USER;
+
+    @Value("${smtp.password}")
+    private String EMAIL_PASSWORD;
+
+    private boolean sendEmail(EmailDetails emailDetails, boolean withAttachment)
             throws ErrorFileNotFound, ErrorCouldNotDeleteFile {
         try {
             validateFileExists(emailDetails.attachmentFilePath());
 
-            Mailer mailer = buildMailer(environment);
+            Mailer mailer = buildMailer();
 
-            Email email = withAttachment ? buildEmailWithAttachment(emailDetails, environment)
-                    : buildEmailWithoutAttachment(emailDetails, environment);
+            Email email = withAttachment ? buildEmailWithAttachment(emailDetails)
+                    : buildEmailWithoutAttachment(emailDetails);
 
             Thread emailThread = new Thread(() -> {
                 try {
@@ -57,35 +64,35 @@ public class EmailSenderService {
         }
     }
 
-    public static boolean sendEmailWithFileAttachment(EmailDetails emailDetails, Environment environment)
+    public boolean sendEmailWithFileAttachment(EmailDetails emailDetails)
             throws ErrorFileNotFound, ErrorCouldNotDeleteFile {
-        return sendEmail(emailDetails, environment, true);
+        return sendEmail(emailDetails, true);
     }
 
-    public static boolean sendEmailWithoutFileAttachment(EmailDetails emailDetails, Environment environment)
+    public boolean sendEmailWithoutFileAttachment(EmailDetails emailDetails, Environment environment)
             throws ErrorFileNotFound, ErrorCouldNotDeleteFile {
-        return sendEmail(emailDetails, environment, false);
+        return sendEmail(emailDetails, false);
     }
 
 
-    private static Mailer buildMailer(Environment environment) {
-        int smtpPortValue = Integer.parseInt(Objects.requireNonNull(environment.getProperty(SMTP_PORT)));
+    private Mailer buildMailer() {
+        int smtpPortValue = Integer.parseInt(Objects.requireNonNull(SMTP_PORT));
 
         return MailerBuilder
                 .withSMTPServer(
-                        environment.getProperty(SMTP_HOST),
-                        smtpPortValue, environment.getProperty(EMAIL_USER),
-                        environment.getProperty(EMAIL_PASSWORD))
+                        SMTP_HOST,
+                        smtpPortValue, EMAIL_USER,
+                        EMAIL_PASSWORD)
                 .withTransportStrategy(TransportStrategy.SMTP_TLS)
                 .withSessionTimeout(10 * 1000)
                 .buildMailer();
     }
 
-    private static Email buildEmailWithAttachment(EmailDetails emailDetails, Environment environment) {
+    private Email buildEmailWithAttachment(EmailDetails emailDetails) {
         DataSource dataSource = new FileDataSource(new File(emailDetails.attachmentFilePath()));
 
         return EmailBuilder.startingBlank()
-                .from("PIPA", Objects.requireNonNull(environment.getProperty(EMAIL_USER)))
+                .from("PIPA", Objects.requireNonNull(EMAIL_USER))
                 .to(emailDetails.recipientName(), emailDetails.recipientEmail())
                 .withSubject(emailDetails.subject())
                 .withPlainText(emailDetails.messageBody())
@@ -93,10 +100,10 @@ public class EmailSenderService {
                 .buildEmail();
     }
 
-    private static Email buildEmailWithoutAttachment(EmailDetails emailDetails, Environment environment) {
+    private Email buildEmailWithoutAttachment(EmailDetails emailDetails) {
 
         return EmailBuilder.startingBlank()
-                .from("PIPA", Objects.requireNonNull(environment.getProperty(EMAIL_USER)))
+                .from("PIPA", Objects.requireNonNull(EMAIL_USER))
                 .to(emailDetails.recipientName(), emailDetails.recipientEmail())
                 .withSubject(emailDetails.subject())
                 .withPlainText(emailDetails.messageBody())
