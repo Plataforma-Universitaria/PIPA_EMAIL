@@ -11,12 +11,6 @@ import java.nio.file.Path;
 
 @Service
 public class EmailServiceImpl implements IEmailService {
-    private final EmailSenderService emailSenderService;
-
-    public EmailServiceImpl(EmailSenderService emailSenderService) {
-        this.emailSenderService = emailSenderService;
-    }
-
     public String HTMLToPDF(String htmlString, Path folderPath, String filePrefix)
             throws ErrorCouldNotCreateFile {
         return HtmlConverter.generate(htmlString, folderPath, filePrefix);
@@ -24,6 +18,7 @@ public class EmailServiceImpl implements IEmailService {
 
     public boolean sendEmailWithFileAttachment(EmailDetails emailDetails)
             throws ErrorFileNotFound, ErrorCouldNotDeleteFile {
+        EmailSenderService emailSenderService = new EmailSenderService();
         return emailSenderService.sendEmailWithFileAttachment(emailDetails);
     }
 }

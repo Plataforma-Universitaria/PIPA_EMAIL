@@ -22,16 +22,17 @@ import java.util.Objects;
 @Slf4j
 public class EmailSenderService {
 
-    @Value("${smtp.host}")
+
+    @Value("${spring.mail.host}")
     private String SMTP_HOST;
 
-    @Value("${smtp.port}")
+    @Value("${spring.mail.port}")
     private String SMTP_PORT;
 
-    @Value("${smtp.user}")
+    @Value("${spring.mail.username}")
     private String EMAIL_USER;
 
-    @Value("${smtp.password}")
+    @Value("${spring.mail.password}")
     private String EMAIL_PASSWORD;
 
     private boolean sendEmail(EmailDetails emailDetails, boolean withAttachment)
@@ -43,6 +44,8 @@ public class EmailSenderService {
 
             Email email = withAttachment ? buildEmailWithAttachment(emailDetails)
                     : buildEmailWithoutAttachment(emailDetails);
+
+            System.out.println(email.toString());
 
             Thread emailThread = new Thread(() -> {
                 try {
